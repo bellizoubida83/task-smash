@@ -1,102 +1,151 @@
-# imports
+# ============================================================
+# Task Smash 2.0 - Flask Application
+# Déployé sur PythonAnywhere : atlasatlas.pythonanywhere.com
+# ============================================================
+
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
-from flask_scss import Scss  
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timezone
 import os
 
-# my app
+# ============================================================
+# Initialisation de l'Application
+# ============================================================
+
 app = Flask(__name__)
 
-# Configuration # Configuration - Adaptée pour PythonAnywhere
-Scss(app)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(os.path.dirname(__file__), 'instance/database.db')
+# Configuration
+basedir = os.path.abspath(os.path.dirname(__file__))
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'instance/database.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = 'votre-clé-secrète-unique'  # Changez ceci !
+app.config['SECRET_KEY'] = 'atlasatlas-secret-key-change-in-production-2024'
 
+# ✅ Initialisation de la base de données (niveau du module)
 db = SQLAlchemy(app)
 
-# Modèle
+# ============================================================
+# Modèle de Base de Données
+# ============================================================
+
 class MyTask(db.Model):
+    """Modèle pour les tâches"""
     id = db.Column(db.Integer, primary_key=True)
     content = db.Column(db.String(100), nullable=False)
-    complete = db.Column(db.Boolean, default=False)  # ✅ Boolean au lieu de Integer
+    complete = db.Column(db.Boolean, default=False)
     created = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     
-    def __repr__(self) -> str:
+    def __repr__(self):
         return f"<Task {self.id}>"
 
+# ============================================================
+# Routes
+# ============================================================
 
-with app.app_context():
-        db.create_all()
-
-# Routes principales
 @app.route("/", methods=["POST", "GET"])
 def index():
+    """Page d'accueil - Liste et ajout de tâches"""
     if request.method == "POST":
         current_task = request.form["content"].strip()
         
-        if not current_task:
-            flash("Veuillez entrer une tâche valide", "error")
-            return redirect("/")
-        
-        new_task = MyTask(content=current_task)
-        try:
-            db.session.add(new_task)
-            db.session.commit()
-            flash("✅ Tâche ajoutée avec succès !", "success")
-            return redirect("/")
-        except Exception as e:
-            db.session.rollback()
-            flash(f"❌ Erreur: {e}", "error")
-            return redirect("/")
+        if current_task:
+            new_task = MyTask(content=current_task)
+            try:
+                db.session.add(new_task)
+                db.session.commit()
+                flash("✅ Tâche ajoutée avec succès !", "success")
+                return redirect("/")
+            except Exception as e:
+                db.session.rollback()
+                flash(f"❌ Erreur: {e}", "error")
+        else:
+            flash("⚠️ Veuillez entrer une tâche valide", "error")
     
+    # Récupérer toutes les tâches
     tasks = MyTask.query.order_by(MyTask.created.desc()).all()
     return render_template("index.html", tasks=tasks)
 
-# Route pour supprimer
+# -------------------------------------------------------------
+
 @app.route("/delete/<int:id>")
 def delete(id):
-    task_to_delete = MyTask.query.get_or_404(id)
+    """Supprimer une tâche"""
+    task = MyTask.query.get_or_404(id)
+    
     try:
-        db.session.delete(task_to_delete)
+        db.session.delete(task)
         db.session.commit()
         flash("🗑️ Tâche supprimée", "success")
-        return redirect("/")
-    except:
-        flash("❌ Erreur lors de la suppression", "error")
-        return redirect("/")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"❌ Erreur lors de la suppression: {e}", "error")
+    
+    return redirect("/")
 
-# Route pour mettre à jour
+# -------------------------------------------------------------
+
 @app.route("/update/<int:id>", methods=["GET", "POST"])
 def update(id):
+    """Mettre à jour une tâche"""
     task = MyTask.query.get_or_404(id)
     
     if request.method == "POST":
         new_content = request.form["content"].strip()
+        
         if new_content:
             task.content = new_content
             try:
                 db.session.commit()
                 flash("✏️ Tâche mise à jour", "success")
                 return redirect("/")
-            except:
-                flash("❌ Erreur lors de la mise à jour", "error")
+            except Exception as e:
+                db.session.rollback()
+                flash(f"❌ Erreur lors de la mise à jour: {e}", "error")
+        else:
+            flash("⚠️ Le contenu ne peut pas être vide", "error")
     
     return render_template("update.html", task=task)
 
-# ✅ Route AJAX pour marquer comme terminé (sans rechargement)
+# -------------------------------------------------------------
+
 @app.route("/toggle-complete/<int:id>", methods=["POST"])
 def toggle_complete(id):
+    """Marquer une tâche comme complétée (AJAX)"""
     task = MyTask.query.get_or_404(id)
-    task.complete = not task.complete
+    
     try:
+        task.complete = not task.complete
         db.session.commit()
         return jsonify({"success": True, "complete": task.complete})
-    except:
-        return jsonify({"success": False}), 500
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": str(e)}), 500
 
-# Initialisation
+# -------------------------------------------------------------
+
+@app.errorhandler(404)
+def not_found(error):
+    """Gestion des erreurs 404"""
+    return render_template("404.html"), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    """Gestion des erreurs 500"""
+    db.session.rollback()
+    return render_template("500.html"), 500
+
+# ============================================================
+# Point d'Entrée Principal
+# ============================================================
+
 if __name__ == "__main__":
+    # Créer le dossier instance s'il n'existe pas
+    if not os.path.exists('instance'):
+        os.makedirs('instance')
     
-    app.run(debug=True)
+    # Créer les tables de la base de données
+    with app.app_context():
+        db.create_all()
+        print("✅ Database tables created!")
+    
+    # Lancer le serveur de développement
+    app.run(debug=True, host='0.0.0.0', port=5000)

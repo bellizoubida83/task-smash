@@ -20,4 +20,4 @@ instance/
 Thumbs.db
 
 # Logs
-*.log
+*.loginstance/ 
