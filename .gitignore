@@ -1,27 +1,15 @@
 # Python
 __pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
+*.pyc
 env/
 venv/
-ENV/
-*.egg-info/
 
-# Flask
-instance/
-.webassets-cache
+# Base de données (optionnel)
+instance/database.db
 
 # IDE
 .vscode/
 .idea/
-*.swp
-*.swo
 
-# OS
-.DS_Store
-Thumbs.db
-
-# Database (optionnel - décommentez si vous ne voulez pas versionner la BDD)
-# instance/database.db
+# PythonAnywhere
+*.log

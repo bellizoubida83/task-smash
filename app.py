@@ -1,17 +1,17 @@
 # imports
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
-from flask_scss import Scss
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timezone
+import os
 
 # my app
 app = Flask(__name__)
 
-# Configuration
+# Configuration # Configuration - Adaptée pour PythonAnywhere
 Scss(app)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(os.path.dirname(__file__), 'instance/database.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = 'task-smash-secret-key-2024'  # Changez ceci en production
+app.config['SECRET_KEY'] = 'votre-clé-secrète-unique'  # Changez ceci !
 
 db = SQLAlchemy(app)
 
@@ -26,8 +26,6 @@ class MyTask(db.Model):
         return f"<Task {self.id}>"
 
 
-with app.app_context():
-        db.create_all()
 # Routes principales
 @app.route("/", methods=["POST", "GET"])
 def index():
@@ -96,5 +94,6 @@ def toggle_complete(id):
 
 # Initialisation
 if __name__ == "__main__":
-    
+    with app.app_context():
+        db.create_all()
     app.run(debug=True)
