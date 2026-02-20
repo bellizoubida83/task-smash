@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block title %}Modifier la tâche{% endblock %}
+
+{% block body %}
+<div class="content">
+    <h1><i class="fas fa-edit"></i> Modifier la tâche</h1>
+    
+    <form action="{{ url_for('update', id=task.id) }}" method="POST">
+        <input type="text" name="content" id="content" 
+               value="{{ task.content }}" required autofocus>
+        <input type="submit" value="💾 Enregistrer">
+    </form>
+    
+    <div style="margin-top: 20px; text-align: center;">
+        <a href="{{ url_for('index') }}" style="color: #666; text-decoration: none;">
+            <i class="fas fa-arrow-left"></i> Retour aux tâches
+        </a>
+    </div>
+</div>
+{% endblock %}
