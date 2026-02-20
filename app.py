@@ -27,6 +27,9 @@ class MyTask(db.Model):
         return f"<Task {self.id}>"
 
 
+with app.app_context():
+        db.create_all()
+
 # Routes principales
 @app.route("/", methods=["POST", "GET"])
 def index():
@@ -95,6 +98,5 @@ def toggle_complete(id):
 
 # Initialisation
 if __name__ == "__main__":
-    with app.app_context():
-        db.create_all()
+    
     app.run(debug=True)

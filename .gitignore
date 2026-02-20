@@ -1,15 +1,23 @@
 # Python
 __pycache__/
+*.py[cod]
 *.pyc
+.Python
 env/
 venv/
+*.egg-info/
 
-# Base de données (optionnel)
-instance/database.db
+# Flask
+instance/
+.webassets-cache
 
 # IDE
 .vscode/
 .idea/
 
-# PythonAnywhere
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
 *.log
